@@ -10,7 +10,7 @@ class WhisperTranscriber:
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
     def transcribe(
-        self, input_file, beam_size=5, accuracy_threshold=0.85, max_retries=3
+        self, input_file, beam_size=5, accuracy_threshold=0.9, max_retries=3
     ):
         if not os.path.isfile(input_file):
             raise FileNotFoundError(f"{input_file} not found")
@@ -37,4 +37,4 @@ class WhisperTranscriber:
         if retries >= max_retries:
             raise Exception(f"Maximum retries reached, transcription failed")
 
-        return transcribed_text
+        return " ".join(transcribed_text)
