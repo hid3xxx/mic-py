@@ -1,60 +1,35 @@
-import math
-import wave
-import requests
-import pyaudio
-import webrtcvad
+import concurrent.futures
+from mic.record import VoiceRecorder
+from mic.transcribe import WhisperTranscriber
 
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000
-CHUNK = int(RATE * 0.02)
-WAVE_OUTPUT_FILENAME = "output.wav"
-VAD_AGGRESSIVENESS = 3
-SILENCE_DURATION = 0.75
 
-audio = pyaudio.PyAudio()
+def transcribe_file(transcriber, audio_file):
+    try:
+        transcribe_text = transcriber.transcribe(audio_file)
+        print(transcribe_text)
 
-stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+        if "終了" in transcribe_text:
+            print("Stop the server")
+            return True
 
-print("Waiting for voice...")
+    except Exception as e:
+        print(f"Error: {e}")
 
-vad = webrtcvad.Vad()
-vad.set_mode(VAD_AGGRESSIVENESS)
+    return False
 
-while True:
-    data = stream.read(CHUNK)
-    if vad.is_speech(data, RATE):
-        frames = [data]
-        break
 
-print("Start recording...")
+def main():
+    voice_recorder = VoiceRecorder()
+    transcriber = WhisperTranscriber()
 
-num_chunks_of_silence = math.ceil(SILENCE_DURATION * RATE / CHUNK)
-is_speech = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        while True:
+            audio_file = voice_recorder.record_voice()
+            future = executor.submit(transcribe_file, transcriber, audio_file)
 
-while True:
-    data = stream.read(CHUNK)
-    frames.append(data)
+            if future.result():
+                break
 
-    is_speech.append(1 if vad.is_speech(data, RATE) else 0)
 
-    if len(is_speech) > num_chunks_of_silence:
-        if all(speech == 0 for speech in is_speech[-num_chunks_of_silence:]):
-            break
-
-print("Finished recording")
-
-stream.stop_stream()
-stream.close()
-audio.terminate()
-
-waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-waveFile.setnchannels(CHANNELS)
-waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-waveFile.setframerate(RATE)
-waveFile.writeframes(b''.join(frames))
-waveFile.close()
-
-url = "http://localhost:8000"
-with open(WAVE_OUTPUT_FILENAME, "rb") as audio_file:
-    response = requests.post(url, files={"audio_file": audio_file})
+if __name__ == "__main__":
+    main()

@@ -1,16 +1,18 @@
 [tool.poetry]
 name = "mic-py"
-version = "0.0.1"
+version = "0.1.0"
 description = ""
+license = ""
 authors = ["hid3xxx"]
 readme = "README.md"
-packages = [{include = "mic_py"}]
+repository = "https://github.com/hid3xxx/mic-py"
+packages = [{ include = "mic_py" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-requests = "^2.30.0"
 pyaudio = "^0.2.13"
 webrtcvad = "^2.0.10"
+faster-whisper = "^0.5.1"
 
 
 [build-system]
